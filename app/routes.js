@@ -1,10 +1,10 @@
-const User = require('./models/user.js');
-
 module.exports = function (app, passport) {
+  // Home page
   app.get('/', (req, res) => {
     res.render('index.ejs')
   })
 
+  // Signup
   app.get('/signup', (req, res) => {
     res.render('signup.ejs', { message: req.flash('signupMessage') })
   })
@@ -12,9 +12,20 @@ module.exports = function (app, passport) {
   app.post('/signup', passport.authenticate('local-signup'), {
     successRedirect: '/',
     failureRedirect: '/signup',
-    failureFlash: true
+    failureFlash: true   // allow flash messages
   })
-
+  
+  
+  
+  // route middleware
+  function isLoggedIn(req, res, next) {
+    // if user is authenticated in the session, carry on
+    if (req.isAuthenticated()) return next;
+    // if not, return to home page
+    res.redirect('/')
+  }
+  
+/*
   app.get('/:username/:password', (req, res) => {
     let user = new User();
     user.local.username = req.params.username;
@@ -22,4 +33,5 @@ module.exports = function (app, passport) {
     console.log(user);
     user.save(function(err) { if(err) throw err });
   })
+  */
 }

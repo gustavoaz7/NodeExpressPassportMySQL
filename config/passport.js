@@ -1,6 +1,13 @@
 const LocalStrategy = require('passport-local').Strategy;
 
-const User = require('../app/models/user.js');
+const mysql = require('mysql')
+const bcrypt = require('bcrypt-nodejs')
+const dbconfig = require('./database')
+
+const connection = mysql.createConnection(dbconfig.connection)
+
+connection.query('USE ' + dbconfig.database);
+
 
 module.exports = function(passport) {
   /* Serialize and deserialize:
@@ -11,33 +18,41 @@ module.exports = function(passport) {
     done(null, user.id);
   })
 
-  passport.deserializeUser(function(user, done) {
-    User.findOne(id, function(err, user) {
-      done(err, user);
+  passport.deserializeUser(function(id, done) {
+    connection.query('SELECT * FROM users WHERE id = ?', [id], function(err, rows) {
+      done(err, rows[0])
     })
   });
 
-  passport.use('local-signup', new LocalStrategy({
-    'username': 'email', //because of name on form @signup.ejs
-    'password': 'password',
-    passReqToCallback: true
-  }, function(req, email, password, done) {
-    process.nextTick(function() {  // This doens't get executed until everything else is done.
-       User.findOne({'local.username': email}, function(err, user) {
-         if(err) return done(err);
-         if(user) {
-           return done(null, false, req.flash('signupMessage', 'That email is already in use'))
-         } else {
-          let user = new User();
-          user.local.username = email;
-          user.local.password = password;
-          user.save(function(err) {
-            if (err) throw err;
-            return done(null, user);
+  // LOCAL SIGNUP
+  
+  passport.use(
+    'local-signup', 
+    new LocalStrategy({
+      'usernameField': 'username',
+      'emailField': 'email',
+      'passwordField': 'password',
+      passReqToCallback: true   // allows us to pass back the entire request to the callback
+    }, 
+    function(req, username, email, password, done) {
+      connection.query("SELECT * FROM users WHERE username = ?", [username], function(err, rows) {
+        if (err) return done(err);
+        if (rows.length) {  // if there is info under that username -> username taken
+          return done(null, false, req.flash('signupMessage', 'This username already exists.'))
+        } else {
+          let newUser = {
+            username: username,
+            email: email,
+            password: bcrypt.hashSync(password, null, null)  // use generateHash function in user model
+          }
+          let insertQuery = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+          connection.query(insertQuery, [newUser.username, newUser.email, newUser.pasword], function(err, rows) {
+            if (err) return done(err);
+            newUser.id = rows.insertId;
+            return done(null, newUser)
           })
-         }
-       })
+        }
+      })
     })
-  }))
-
+  )
 }
