@@ -16,11 +16,11 @@ module.exports = function(passport) {
   */
   passport.serializeUser(function(user, done) {
     done(null, user.id);
-  })
+  });
 
   passport.deserializeUser(function(id, done) {
     connection.query('SELECT * FROM users WHERE id = ?', [id], function(err, rows) {
-      done(err, rows[0])
+      done(err, rows[0])  // row[0] = id
     })
   });
 
@@ -30,11 +30,10 @@ module.exports = function(passport) {
     'local-signup', 
     new LocalStrategy({
       'usernameField': 'username',
-      'emailField': 'email',
       'passwordField': 'password',
       passReqToCallback: true   // allows us to pass back the entire request to the callback
     }, 
-    function(req, username, email, password, done) {
+    function(req, username, password, done) {
       connection.query("SELECT * FROM users WHERE username = ?", [username], function(err, rows) {
         if (err) return done(err);
         if (rows.length) {  // if there is info under that username -> username taken
@@ -42,13 +41,10 @@ module.exports = function(passport) {
         } else {
           let newUser = {
             username: username,
-            email: email,
             password: bcrypt.hashSync(password, null, null)  // use generateHash function in user model
           }
-          let insertQuery = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
-          connection.query(insertQuery, [newUser.username, newUser.email, newUser.pasword], function(err, rows) {
-            if (err) return done(err);
-            newUser.id = rows.insertId;
+          let insertQuery = "INSERT INTO users (username, password) VALUES (?, ?)";
+          connection.query(insertQuery, [newUser.username, newUser.pasword], function(err, rows) {
             return done(null, newUser)
           })
         }

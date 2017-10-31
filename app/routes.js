@@ -9,11 +9,11 @@ module.exports = function (app, passport) {
     res.render('signup.ejs', { message: req.flash('signupMessage') })
   })
 
-  app.post('/signup', passport.authenticate('local-signup'), {
+  app.post('/signup', passport.authenticate('local-signup', {
     successRedirect: '/',
     failureRedirect: '/signup',
     failureFlash: true   // allow flash messages
-  })
+  }))
   
   
   

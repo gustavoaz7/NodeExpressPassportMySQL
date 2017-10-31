@@ -21,7 +21,7 @@ app.use(cookieParser());  // read cookies (needed for auth)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json())
 
-app.use('view engine', 'ejs');
+app.set('view engine', 'ejs');
 
 // Required for passport
 app.use(session({
