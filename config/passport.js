@@ -29,8 +29,8 @@ module.exports = function(passport) {
   passport.use(
     'local-signup', 
     new LocalStrategy({
-      'usernameField': 'username',
-      'passwordField': 'password',
+      usernameField: 'username',
+      passwordField: 'password',
       passReqToCallback: true   // allows us to pass back the entire request to the callback
     }, 
     function(req, username, password, done) {
@@ -39,12 +39,13 @@ module.exports = function(passport) {
         if (rows.length) {  // if there is info under that username -> username taken
           return done(null, false, req.flash('signupMessage', 'This username already exists.'))
         } else {
-          let newUser = {
+          const newUser = {
             username: username,
             password: bcrypt.hashSync(password, null, null)  // use generateHash function in user model
           }
-          let insertQuery = "INSERT INTO users (username, password) VALUES (?, ?)";
-          connection.query(insertQuery, [newUser.username, newUser.pasword], function(err, rows) {
+          const insertQuery = "INSERT INTO users ( username, password ) values (?,?)";
+          connection.query(insertQuery, [newUser.username, newUser.password], function(err, rows) {
+            newUser.id = rows.insertId;
             return done(null, newUser)
           })
         }
