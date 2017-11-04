@@ -3,6 +3,17 @@ module.exports = function (app, passport) {
   app.get('/', (req, res) => {
     res.render('index.ejs')
   })
+  
+  // Login
+  app.get('/login', (req, res) => {
+    res.render('login.ejs', {message: req.flash('loginMessage')})
+  })
+  
+  app.post('/login', passport.authenticate('local-login', {
+    successRedirect: '/profile',
+    failureRedirect: '/login',
+    failureFlash: true
+  }))
 
   // Signup
   app.get('/signup', (req, res) => {
@@ -15,14 +26,25 @@ module.exports = function (app, passport) {
     failureFlash: true   // allow flash messages
   }))
   
+  // Logout
+  app.get('/logout', (req, res) => {
+    req.logout();
+    res.redirect('/')
+  })
+  
+  
+  // Logged in
+  app.get('/profile', isLoggedIn, (req, res) => {
+    res.render('profile.ejs', {user: req.user})
+  })
   
   
   // route middleware
   function isLoggedIn(req, res, next) {
     // if user is authenticated in the session, carry on
-    if (req.isAuthenticated()) return next;
+    if (req.isAuthenticated()) return next();
     // if not, return to home page
-    res.redirect('/')
+    res.redirect('/login')
   }
   
 /*
