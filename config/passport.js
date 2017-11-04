@@ -71,9 +71,43 @@ module.exports = function(passport) {
     })
   )
   
-  
+  const FacebookStrategy = require('passport-facebook').Strategy;
+
+  passport.use(new FacebookStrategy({
+      clientID: facebookConfig.clientID,
+      clientSecret: facebookConfig.clientSecret,
+      callbackURL: facebookConfig.callbackURL/*,
+      profileFields: ['id', 'displayName', 'emails']*/
+    },
+    function(accessToken, refreshToken, profile, done) {
+      console.log(profile)
+      connection.query("SELECT * FROM users WHERE username = ?", [profile.id], function(err, user) {
+        if (err) return done(err);
+        if (user) { 
+          return done(null, user)
+        } else {
+          const newUser = {
+            username: profile.id,
+            password: bcrypt.hashSync(accessToken, null, null)
+          }
+          const facebookUser = {
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            profile: profile
+          }
+          const insertQuery = "INSERT INTO users ( username, password ) values (?,?)";
+          connection.query(insertQuery, [newUser.username, newUser.password], function(err, user) {
+            newUser.id = user.insertId;
+            return done(null, facebookUser)
+          })
+        }
+      })
+    }
+  ));
 
 
 }
+
+
 
 
