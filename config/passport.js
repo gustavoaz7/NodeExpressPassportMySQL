@@ -1,4 +1,5 @@
 const LocalStrategy = require('passport-local').Strategy;
+const facebookConfig = require('./facebookInfo.js')
 
 const mysql = require('mysql')
 const bcrypt = require('bcrypt-nodejs')
@@ -19,8 +20,8 @@ module.exports = function(passport) {
   });
 
   passport.deserializeUser(function(id, done) {
-    connection.query('SELECT * FROM users WHERE id = ?', [id], function(err, rows) {
-      done(err, rows[0])  // row[0] = id
+    connection.query('SELECT * FROM users WHERE id = ?', [id], function(err, user) {
+      done(err, user[0])  // user[0] = id
     })
   });
 
@@ -34,9 +35,9 @@ module.exports = function(passport) {
       passReqToCallback: true   // allows us to pass back the entire request to the callback
     }, 
     function(req, username, password, done) {
-      connection.query("SELECT * FROM users WHERE username = ?", [username], function(err, rows) {
+      connection.query("SELECT * FROM users WHERE username = ?", [username], function(err, user) {
         if (err) return done(err);
-        if (rows.length) {  // if there is info under that username -> username taken
+        if (user.length) {  // if there is info under that username -> username taken
           return done(null, false, req.flash('signupMessage', 'This username already exists.'))
         } else {
           const newUser = {
@@ -44,12 +45,35 @@ module.exports = function(passport) {
             password: bcrypt.hashSync(password, null, null)  // use generateHash function in user model
           }
           const insertQuery = "INSERT INTO users ( username, password ) values (?,?)";
-          connection.query(insertQuery, [newUser.username, newUser.password], function(err, rows) {
-            newUser.id = rows.insertId;
+          connection.query(insertQuery, [newUser.username, newUser.password], function(err, user) {
+            newUser.id = user.insertId;
             return done(null, newUser)
           })
         }
       })
     })
   )
+  
+  passport.use('local-login', new LocalStrategy({
+      usernameField: 'username',
+      passwordField: 'password',
+      passReqToCallback: true
+    }, 
+    function(req, username, password, done) {
+      connection.query("SELECT * FROM users WHERE username = ?", [username], function(err, user) {
+        if (err) return done(err);
+        if (!user) return done(null, false, req.flash('loginMessage', 'Username not found.'))
+        if (!bcrypt.compareSync(password, user.password)) {
+          return done(null, false, req.flash('loginMessage', 'Incorrect password.'))
+        }
+        return done(null, user)
+      })  
+    })
+  )
+  
+  
+
+
 }
+
+
