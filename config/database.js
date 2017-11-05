@@ -7,4 +7,4 @@ module.exports = {
   },
   'database': 'passportOAuth',
   'regist_table': 'users'
-}
+};
